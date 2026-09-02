@@ -1,0 +1,50 @@
+.inbucket-header {
+  color: #fff;
+  background: var(--navy);
+}
+
+.inbucket-header-content {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  min-height: 68px;
+  padding-block: 8px;
+}
+
+.inbucket-header h1 {
+  margin: 0;
+  font-size: 1.65rem;
+  line-height: 1;
+}
+
+.inbucket-header .button-secondary {
+  color: #fff;
+  border-color: #64748b;
+}
+
+.inbucket-main {
+  padding-block: 16px 16px;
+}
+
+.inbucket-tabs {
+  display: flex;
+  gap: 8px;
+  margin-right: auto;
+}
+
+.inbucket-tab {
+  padding: 9px 12px;
+  color: #cbd5e1;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.inbucket-tab:hover,
+.inbucket-tab[aria-current='page'] {
+  color: #fff;
+  background: #1e293b;
+}

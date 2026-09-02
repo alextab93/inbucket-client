@@ -1,0 +1,229 @@
+.tag-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
+}
+
+.tag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 2px 6px;
+  overflow: hidden;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #f8fafc;
+  font-size: 0.74rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.tag-badge > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-badge .tag-swatch {
+  width: 11px;
+  height: 11px;
+}
+
+.tag-badge-more {
+  flex: 0 0 auto;
+  color: #334155;
+  border-color: #cbd5e1;
+  background: #e2e8f0;
+}
+
+.tag-swatch {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+}
+
+.tag-action {
+  position: relative;
+}
+
+.tag-popover {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(390px, calc(100vw - 32px));
+  max-height: min(620px, calc(100dvh - 100px));
+  padding: 16px;
+  overflow: auto;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.2);
+}
+
+.tag-popover h3,
+.tag-popover p {
+  margin: 0 0 12px;
+}
+
+.tag-assignment-list,
+.tag-management-list,
+.tag-editor {
+  display: grid;
+  gap: 8px;
+}
+
+.tag-assignment-list label,
+.tag-management-list summary {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 38px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.tag-assignment-list label:hover,
+.tag-management-list summary:hover {
+  background: var(--wash);
+}
+
+.tag-assignment-list input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--blue);
+}
+
+.tag-popover-actions,
+.tag-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.tag-popover button,
+.tag-editor button {
+  min-height: 36px;
+  padding: 7px 11px;
+  color: var(--ink);
+  border: 1px solid #94a3b8;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tag-editor {
+  gap: 14px;
+  padding: 10px 0;
+}
+
+.tag-editor > label {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.tag-editor > label > input {
+  min-height: 40px;
+  padding: 8px 10px;
+  color: var(--ink);
+  border: 1px solid #94a3b8;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+}
+
+.tag-editor fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.tag-editor legend {
+  margin-bottom: 7px;
+  font-weight: 700;
+}
+
+.tag-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.tag-preset-grid label {
+  position: relative;
+  cursor: pointer;
+}
+
+.tag-preset-grid input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.tag-preset-grid label > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+
+.tag-preset-grid input:checked + span {
+  color: var(--blue-dark);
+  border-color: var(--blue);
+  background: #eff6ff;
+  font-weight: 700;
+}
+
+.tag-preset-grid input:focus-visible + span {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+
+.tag-custom-color {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.tag-custom-color input {
+  width: 44px;
+  height: 36px;
+  padding: 2px;
+  border: 1px solid #94a3b8;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.tag-custom-color output {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+}
+
+.tag-error {
+  color: #b91c1c;
+}
+
+.tag-management-list details {
+  border-bottom: 1px solid var(--line);
+}
+
+.tag-delete {
+  margin-bottom: 12px;
+  color: #b91c1c !important;
+  border-color: #fecaca !important;
+}

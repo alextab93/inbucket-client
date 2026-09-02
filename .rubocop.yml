@@ -1,0 +1,132 @@
+inherit_from: .rubocop_todo.yml
+
+plugins:
+  - rubocop-rails
+  - rubocop-rspec
+  - rubocop-performance
+
+AllCops:
+  TargetRubyVersion: 3.3
+  TargetRailsVersion: 8.0
+
+  # Opt-in to new cops by default (future-proofing)
+  NewCops: enable
+
+  # Exclude auto-generated or vendored files
+  Exclude:
+    - 'bin/*/'
+    - 'config/*/'
+    - 'db/*/'
+    - 'node_modules/*/'
+    - 'script/*/'
+    - 'tmp/*/'
+    - 'vendor/*/'
+  # Suggest extensions if not installed
+  SuggestExtensions: false
+
+#####################   THE OVERRIDE   #####################
+
+# Force double quotes for all strings (unless they contain double quotes)
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+# Consistency for logging/messages
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+
+#####################   LINTER   #####################
+
+Lint/MissingSuper:
+  Exclude:
+    - 'app/services/*/'
+
+#####################   RAILS TUNING   #####################
+
+# Documentation is vital for Gems, but noise for internal Rails Apps.
+# We disable this to stop it from yelling about every Controller.
+Style/Documentation:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  EnforcedStyle: never
+
+# Rails often uses simple formatting; guard clauses can sometimes make code harder to read
+# in simple controller actions. Use judgment.
+Style/GuardClause:
+  Enabled: true
+  Exclude:
+    - 'app/controllers/*/'
+
+# This cop is unsafe because it cannot be guaranteed that the receiver defines the predicates
+# or can be compared to a number, which may lead to a false positive for non-standard classes.
+Style/NumericPredicate:
+  Enabled: false
+
+#####################     METRICS      #####################
+# Avoid deeply nested logic. If you hit 4, refactor.
+Metrics/AbcSize:
+  Max: 20
+
+Rails/SkipsModelValidations:
+ Exclude:
+  - 'spec/*/'
+
+Metrics/BlockLength:
+  AllowedMethods:
+    - define
+    - describe
+    - context
+    - feature
+    - scenario
+    - shared_examples
+    - shared_context
+
+Metrics/CyclomaticComplexity:
+  Max: 6
+
+# 80 chars is for 1990 monitors. 120 is the modern standard.
+Layout/LineLength:
+  Max: 120
+
+# Allow slightly longer methods for Controllers (often need to set up variables)
+Metrics/MethodLength:
+  Max: 15
+  CountComments: false
+
+# Class length limits often force premature abstraction.
+# 150 lines is a healthy warning limit.
+Metrics/ClassLength:
+  Max: 150
+
+# STYLE GUIDE:
+# - 1-3 args: Positional is fine.
+# - 4-5 args: Switch to Keyword Arguments (e.g. def foo(a:, b:))
+# - 6+ args:  Refactor into a Form Object or Parameter Object.
+Metrics/ParameterLists:
+  Max: 5
+  CountKeywordArgs: true
+
+#####################   PERFORMANCE    #####################
+# These rules catch actual inefficient code (e.g., Array#map.flatten vs flat_map)
+Performance/CollectionLiteralInLoop:
+  Enabled: true
+
+#####################   TESTING    #####################
+RSpec/MultipleExpectations:
+  Enabled: false
+  Max: 3
+
+# Tests should be concise. Setup belongs in let or before.
+RSpec/ExampleLength:
+  Max: 10
+
+# Enforce let over instance variables for lazy loading.
+RSpec/InstanceVariable:
+  Enabled: true
+
+RSpec/MultipleMemoizedHelpers:
+  Enabled: false
+
+RSpec/NestedGroups:
+  Max: 5

@@ -1,0 +1,10 @@
+@import './inbucket/shell.css';
+@import './inbucket/access.css';
+@import './inbucket/archive.css';
+@import './inbucket/mailbox-tools.css';
+@import './inbucket/list-controls.css';
+@import './inbucket/message-list.css';
+@import './inbucket/message-tags.css';
+@import './inbucket/message-inspector.css';
+@import './inbucket/trash.css';
+@import './inbucket/responsive.css';

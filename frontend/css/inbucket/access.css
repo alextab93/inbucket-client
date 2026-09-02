@@ -1,0 +1,37 @@
+.inbucket-access {
+  max-width: 720px;
+  padding: 36px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.inbucket-access h2 {
+  margin: 6px 0 12px;
+}
+
+.login-form {
+  display: grid;
+  gap: 18px;
+  margin: 24px 0;
+}
+
+.login-form label {
+  display: grid;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.login-form input {
+  width: 100%;
+  padding: 12px 14px;
+  color: var(--ink);
+  border: 1px solid #94a3b8;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+}
+
+.login-form .button {
+  justify-self: start;
+}

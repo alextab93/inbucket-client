@@ -1,0 +1,93 @@
+.archive-view {
+  width: 100%;
+  min-height: calc(100dvh - 100px);
+  padding: clamp(20px, 2.5vw, 34px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--wash);
+}
+
+.archive-view-heading h2,
+.archive-view-heading p {
+  margin: 0;
+}
+
+.archive-view-heading {
+  display: grid;
+  gap: 8px;
+}
+
+.archive-view-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px 24px;
+}
+
+.archive-view-heading p {
+  max-width: 780px;
+  color: var(--muted);
+}
+
+.archive-view-count {
+  padding: 6px 10px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.archive-view > .status-message {
+  margin: 12px 0 0;
+}
+
+.archive-view > .status-message:empty {
+  display: none;
+}
+
+.archived-mailbox-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.archived-mailbox-option {
+  display: grid;
+  align-content: space-between;
+  gap: 20px;
+  min-width: 0;
+  min-height: 150px;
+  padding: 18px;
+  border: 1px solid #94a3b8;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.archived-mailbox-option strong {
+  display: block;
+  overflow: hidden;
+  font-size: 1.05rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.archived-mailbox-option p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.archived-mailbox-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.archived-mailbox-actions .button {
+  width: 100%;
+  min-height: 44px;
+  padding-inline: 12px;
+}

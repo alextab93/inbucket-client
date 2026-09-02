@@ -1,0 +1,22 @@
+.trash-view > .status-message:empty {
+  display: none;
+}
+
+.trash-empty-action {
+  min-height: 42px;
+  padding: 8px 14px;
+  white-space: nowrap;
+}
+
+.trash-empty-action:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.trash-outcomes {
+  margin: 0 0 16px;
+  padding: 12px 12px 12px 32px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}

@@ -1,0 +1,247 @@
+.list-filter-control {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.list-filter-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+  color: var(--ink);
+  border: 1px solid #94a3b8;
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.list-filter-trigger svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.8;
+}
+
+.mailbox-toolbar-trigger {
+  display: none;
+}
+
+.list-filter-trigger:hover,
+.list-filter-trigger[aria-expanded='true'] {
+  border-color: var(--blue);
+}
+
+.list-filter-trigger[data-active='true'] {
+  border-color: var(--blue);
+  background: #eff6ff;
+}
+
+.list-filter-popover {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 290px;
+  max-width: calc(100vw - 32px);
+  max-height: min(520px, calc(100dvh - 120px));
+  overflow: auto;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  line-height: 1.35;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.2);
+}
+
+.list-filter-popover-heading {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 4px 8px 4px 16px;
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+
+.list-filter-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--ink);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.list-filter-close:hover {
+  background: var(--wash);
+}
+
+.list-filter-close svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.8;
+}
+
+.list-filter-section {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+  padding: 12px;
+  border: 0;
+}
+
+.list-filter-divider {
+  height: 1px;
+  background: var(--line);
+}
+
+.list-filter-section legend {
+  width: 100%;
+  margin: 0;
+  padding: 5px 0 0 5px;
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.list-filter-option {
+  position: relative;
+  display: block;
+  cursor: pointer;
+}
+
+.list-filter-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.list-filter-option-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 6px;
+  border-radius: 8px;
+}
+
+.list-filter-option-icon {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+
+.list-filter-option:hover .list-filter-option-content {
+  background: var(--wash);
+}
+
+.list-filter-option input:focus-visible + .list-filter-option-content {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+
+.list-filter-option input:checked + .list-filter-option-content {
+  color: var(--blue-dark);
+  font-weight: 700;
+}
+
+.list-filter-select {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.list-filter-select select {
+  width: 100%;
+  min-height: 40px;
+  padding: 7px 34px 7px 10px;
+  color: var(--ink);
+  border: 1px solid #94a3b8;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+}
+
+.list-filter-dates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.list-filter-dates label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.list-filter-dates input {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 7px;
+  color: var(--ink);
+  border: 1px solid #94a3b8;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+}
+
+.list-filter-dates input:focus {
+  border-color: var(--blue);
+  outline: 2px solid color-mix(in srgb, var(--blue) 24%, transparent);
+  outline-offset: 1px;
+}
+
+.list-filter-clear {
+  justify-self: start;
+  margin: 8px 0 0;
+  padding: 5px;
+  color: var(--blue-dark);
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.list-filter-clear:hover:not(:disabled) {
+  background: var(--wash);
+}
+
+.list-filter-clear:disabled {
+  color: var(--muted);
+  cursor: default;
+  opacity: 0.55;
+}
