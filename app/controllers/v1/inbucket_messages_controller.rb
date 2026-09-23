@@ -6,7 +6,7 @@ module V1
 
     def index
       mailboxes = requested_mailboxes
-      partial_mailboxes = refresh_mailboxes(mailboxes)
+      partial_mailboxes = recent_scope? ? [] : refresh_mailboxes(mailboxes)
       page = InbucketMessagePage.new(user: current_user, mailboxes:, params:).call
       render json: page.merge(partial_mailboxes:)
     rescue InbucketMessagePage::InvalidRequest, InbucketMessageDateRange::InvalidRequest
@@ -120,10 +120,16 @@ module V1
     private
 
     def requested_mailboxes
+      return Mailbox.active.select(:name) if recent_scope?
+
       names = Array(params[:mailboxes]).map { |name| name.to_s.strip }.reject(&:empty?).uniq
       raise InbucketMessagePage::InvalidRequest if names.empty? || names.length > 50
 
       names
+    end
+
+    def recent_scope?
+      params[:scope] == "recent"
     end
 
     def refresh_mailboxes(mailboxes)

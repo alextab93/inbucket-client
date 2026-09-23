@@ -283,7 +283,7 @@ describe('mailbox workspace', () => {
     expect(screen.getByRole('checkbox', { name: 'support' })).toBeChecked()
 
     await user.click(screen.getByRole('button', { name: 'Clear' }))
-    expect(await screen.findByText('No mailbox selected')).toBeVisible()
+    expect(await screen.findByText('Recent messages')).toBeVisible()
     expect(window.location.search).toBe('')
 
     reloadedRender.unmount()
@@ -605,9 +605,7 @@ describe('mailbox workspace', () => {
     await user.click(
       within(savedMailboxes).getByRole('button', { name: 'Clear' }),
     )
-    expect(
-      await screen.findByText('Select one or more mailboxes to read messages.'),
-    ).toBeVisible()
+    expect(await screen.findByText('Recent messages')).toBeVisible()
     expect(messageList.scrollTop).toBe(0)
 
     await user.click(

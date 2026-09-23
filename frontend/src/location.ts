@@ -41,7 +41,12 @@ export const readLocation = (): AppLocation => {
           ),
         ]
       : []
-  if (view === 'mailboxes' && mailbox && !selectedMailboxes.includes(mailbox)) {
+  if (
+    view === 'mailboxes' &&
+    url.searchParams.get('scope') !== 'recent' &&
+    mailbox &&
+    !selectedMailboxes.includes(mailbox)
+  ) {
     selectedMailboxes.push(mailbox)
   }
 
@@ -78,6 +83,15 @@ export const writeLocation = (
       ? selectedMailboxes[0]
       : location.mailbox
   url.searchParams.delete('mailboxes')
+  url.searchParams.delete('scope')
+  if (
+    location.view === 'mailboxes' &&
+    !selectedMailboxes.length &&
+    mailbox &&
+    location.message
+  ) {
+    url.searchParams.set('scope', 'recent')
+  }
   if (location.view === 'mailboxes' && selectedMailboxes.length > 1) {
     selectedMailboxes.forEach((selected) =>
       url.searchParams.append('mailboxes', selected),

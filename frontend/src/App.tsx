@@ -25,7 +25,8 @@ import type {
 } from './types'
 
 const defaultMailboxStatus: StatusValue = {
-  message: 'Select one or more saved mailboxes, or add a mailbox name.',
+  message:
+    'Recent messages across active mailboxes. Select a mailbox to browse its history.',
   state: 'authenticated',
 }
 
@@ -55,7 +56,11 @@ const restoreAvailableMailboxes = (
   const selectedMailboxes = normalizeMailboxNames(
     location.selectedMailboxes || [],
   ).filter((mailbox) => available.has(mailbox))
-  const selectedMessageMailbox = selectedMailboxes.includes(location.mailbox)
+  const selectedMessageMailbox = (
+    selectedMailboxes.length
+      ? selectedMailboxes.includes(location.mailbox)
+      : available.has(location.mailbox)
+  )
     ? location.mailbox
     : ''
 
@@ -89,38 +94,38 @@ const validArchivedMailboxes = (value: unknown): value is ArchivedMailbox[] =>
 const validMessagePage = (value: unknown): value is MessagePage =>
   Boolean(
     value &&
-    typeof value === 'object' &&
-    Array.isArray((value as MessagePage).messages) &&
-    ((value as MessagePage).next_cursor === null ||
-      typeof (value as MessagePage).next_cursor === 'string') &&
-    Array.isArray((value as MessagePage).partial_mailboxes) &&
-    (value as MessagePage).partial_mailboxes.every(
-      (mailbox) => typeof mailbox === 'string',
-    ) &&
-    Number.isInteger((value as MessagePage).total_count) &&
-    (value as MessagePage).total_count >= 0,
+      typeof value === 'object' &&
+      Array.isArray((value as MessagePage).messages) &&
+      ((value as MessagePage).next_cursor === null ||
+        typeof (value as MessagePage).next_cursor === 'string') &&
+      Array.isArray((value as MessagePage).partial_mailboxes) &&
+      (value as MessagePage).partial_mailboxes.every(
+        (mailbox) => typeof mailbox === 'string',
+      ) &&
+      Number.isInteger((value as MessagePage).total_count) &&
+      (value as MessagePage).total_count >= 0,
   )
 
 const validLiveMessagePage = (value: unknown): value is LiveMessagePage =>
   Boolean(
     value &&
-    typeof value === 'object' &&
-    Array.isArray((value as LiveMessagePage).changes) &&
-    (value as LiveMessagePage).changes.every(
-      (change) =>
-        change &&
-        typeof change.mailbox === 'string' &&
-        typeof change.id === 'string' &&
-        typeof change.available === 'boolean' &&
-        typeof change.created === 'boolean' &&
-        typeof change.archived === 'boolean' &&
-        change.message &&
-        typeof change.message === 'object',
-    ) &&
-    ((value as LiveMessagePage).active_mailboxes === undefined ||
-      validActiveMailboxes((value as LiveMessagePage).active_mailboxes)) &&
-    typeof (value as LiveMessagePage).cursor === 'string' &&
-    typeof (value as LiveMessagePage).has_more === 'boolean',
+      typeof value === 'object' &&
+      Array.isArray((value as LiveMessagePage).changes) &&
+      (value as LiveMessagePage).changes.every(
+        (change) =>
+          change &&
+          typeof change.mailbox === 'string' &&
+          typeof change.id === 'string' &&
+          typeof change.available === 'boolean' &&
+          typeof change.created === 'boolean' &&
+          typeof change.archived === 'boolean' &&
+          change.message &&
+          typeof change.message === 'object',
+      ) &&
+      ((value as LiveMessagePage).active_mailboxes === undefined ||
+        validActiveMailboxes((value as LiveMessagePage).active_mailboxes)) &&
+      typeof (value as LiveMessagePage).cursor === 'string' &&
+      typeof (value as LiveMessagePage).has_more === 'boolean',
   )
 
 export const App = () => {
@@ -140,6 +145,7 @@ export const App = () => {
   const [catalogLoading, setCatalogLoading] = useState(false)
   const [catalogError, setCatalogError] = useState('')
   const [liveError, setLiveError] = useState('')
+  const [liveReady, setLiveReady] = useState(false)
   const [archivedCatalogError, setArchivedCatalogError] = useState('')
   const [selectedMailboxes, setSelectedMailboxes] = useState<string[]>([])
   const [liveAllMailboxes, setLiveAllMailboxes] = useState(true)
@@ -181,6 +187,7 @@ export const App = () => {
   const selectedMailboxesRef = useRef<string[]>([])
   const knownMailboxesRef = useRef<Set<string>>(new Set())
   const liveController = useRef<AbortController | null>(null)
+  const initialLiveCursor = useRef<string | null>(null)
   const starredLoadController = useRef<AbortController | null>(null)
   const liveAllMailboxesRef = useRef(true)
 
@@ -223,6 +230,8 @@ export const App = () => {
     setNextMessageCursor(null)
     setMessageTotalCount(0)
     setLiveError('')
+    setLiveReady(false)
+    initialLiveCursor.current = null
     knownMailboxesRef.current = new Set()
     setStarredMessages([])
     setStarredSelectedMessage(null)
@@ -233,6 +242,30 @@ export const App = () => {
     setInspectorEmptyMessage('Select a message to read it.')
     writeLocation({ view: 'mailboxes', mailbox: '', message: '' })
   }, [])
+
+  const prepareLiveUpdates = useCallback(
+    async (signal?: AbortSignal) => {
+      initialLiveCursor.current = null
+      setLiveReady(false)
+      try {
+        const page = await api.liveMessages(null, signal)
+        if (signal?.aborted) return false
+        if (!validLiveMessagePage(page))
+          throw new ApiError(422, 'invalid_response')
+        initialLiveCursor.current = page.cursor
+        return true
+      } catch (error) {
+        if (isAbort(error)) return false
+        if (isUnauthorized(error)) {
+          expireSession()
+          return false
+        }
+        setLiveError('Live updates are temporarily unavailable.')
+        return true
+      }
+    },
+    [expireSession],
+  )
 
   const loadTags = useCallback(
     async (signal?: AbortSignal) => {
@@ -397,14 +430,20 @@ export const App = () => {
         setMessageTotalCount(page.total_count)
         const location =
           query.mailbox ||
-          (names.length === 1 ? names[0] : `${names.length} mailboxes`)
+          (names.length === 0
+            ? 'active mailboxes'
+            : names.length === 1
+              ? names[0]
+              : `${names.length} mailboxes`)
         const summary = `${page.total_count} ${
           page.total_count === 1 ? 'message' : 'messages'
         } in ${location}.`
         setMailboxStatus({
           message: page.partial_mailboxes.length
             ? `${summary} Cached results are shown because ${page.partial_mailboxes.join(', ')} could not be refreshed.`
-            : summary,
+            : names.length
+              ? summary
+              : `${summary} Select a mailbox to browse its history.`,
           state: page.partial_mailboxes.length ? 'error' : 'authenticated',
         })
 
@@ -461,29 +500,15 @@ export const App = () => {
           {
             view: 'mailboxes',
             selectedMailboxes: names,
-            mailbox:
-              requestedMessageId && names.length
-                ? requestedMessageMailbox || names[0]
-                : names.length === 1
-                  ? names[0]
-                  : '',
+            mailbox: requestedMessageId
+              ? requestedMessageMailbox || names[0]
+              : names.length === 1
+                ? names[0]
+                : '',
             message: requestedMessageId,
           },
           historyMode,
         )
-      }
-
-      if (!names.length) {
-        setMessages([])
-        messagesRef.current = []
-        setNextMessageCursor(null)
-        setMessageTotalCount(0)
-        setMailboxLoading(false)
-        setMailboxStatus(defaultMailboxStatus)
-        setInspectorEmptyMessage(
-          'Select one or more mailboxes to read messages.',
-        )
-        return
       }
 
       const currentQuery = messageQueryRef.current
@@ -497,7 +522,7 @@ export const App = () => {
         names,
         query,
         null,
-        true,
+        names.length > 0,
         requestedMessageId
           ? {
               mailbox: requestedMessageMailbox || names[0],
@@ -518,8 +543,6 @@ export const App = () => {
       if (messageQueryTimer.current !== null) {
         window.clearTimeout(messageQueryTimer.current)
       }
-      if (!selectedMailboxes.length) return
-
       messageQueryTimer.current = window.setTimeout(
         () => {
           messageQueryTimer.current = null
@@ -612,11 +635,17 @@ export const App = () => {
         setSession(restoredSession)
         setAuthentication('authenticated')
         setAccessStatus({ message: '' })
-        const [availableMailboxes] = await Promise.all([
+        const [availableMailboxes, , livePrepared] = await Promise.all([
           refreshCatalogs(controller.signal, true),
           loadTags(controller.signal),
+          prepareLiveUpdates(controller.signal),
         ])
-        if (controller.signal.aborted) return
+        if (
+          controller.signal.aborted ||
+          availableMailboxes === undefined ||
+          !livePrepared
+        )
+          return
         const location = restoreAvailableMailboxes(
           readLocation(),
           availableMailboxes || null,
@@ -629,14 +658,13 @@ export const App = () => {
         )
         writeLocation(location)
         const restoredMailboxes = location.selectedMailboxes || []
-        if (location.view === 'mailboxes' && restoredMailboxes.length) {
-          await loadMailboxes(
-            restoredMailboxes,
-            location.message,
-            'replace',
-            location.mailbox,
-          )
-        }
+        await loadMailboxes(
+          restoredMailboxes,
+          location.view === 'mailboxes' ? location.message : '',
+          location.view === 'mailboxes' ? 'replace' : null,
+          location.mailbox,
+        )
+        if (!controller.signal.aborted) setLiveReady(true)
       } catch (error) {
         if (isAbort(error)) return
         if (isUnauthorized(error)) {
@@ -664,7 +692,7 @@ export const App = () => {
         messageQueryTimer.current = null
       }
     }
-  }, [loadMailboxes, loadTags, refreshCatalogs])
+  }, [loadMailboxes, loadTags, prepareLiveUpdates, refreshCatalogs])
 
   useEffect(() => {
     if (authentication !== 'authenticated') return
@@ -698,10 +726,10 @@ export const App = () => {
   }, [authentication, loadMailboxes])
 
   useEffect(() => {
-    if (authentication !== 'authenticated') return
+    if (authentication !== 'authenticated' || !liveReady) return
 
     let stopped = false
-    let cursor: string | null = null
+    let cursor = initialLiveCursor.current
     let timer: number | null = null
 
     const schedule = (delay: number) => {
@@ -728,7 +756,10 @@ export const App = () => {
 
         let nextMailboxes = mailboxesRef.current
         let nextSelected = selectedMailboxesRef.current
-        const countedMailboxes = new Set(nextSelected)
+        const recentMessages = nextSelected.length === 0
+        const countedMailboxes = new Set(
+          recentMessages ? nextMailboxes : nextSelected,
+        )
         for (const change of page.changes) {
           const known = knownMailboxesRef.current.has(change.mailbox)
           knownMailboxesRef.current.add(change.mailbox)
@@ -744,7 +775,11 @@ export const App = () => {
           if (!nextMailboxes.includes(change.mailbox)) {
             nextMailboxes = [...nextMailboxes, change.mailbox].sort()
           }
-          if (!known && !nextSelected.includes(change.mailbox)) {
+          if (
+            !recentMessages &&
+            !known &&
+            !nextSelected.includes(change.mailbox)
+          ) {
             nextSelected = [...nextSelected, change.mailbox]
           }
         }
@@ -762,7 +797,9 @@ export const App = () => {
         }
 
         const selectedSet = new Set(
-          liveAllMailboxesRef.current ? mailboxesRef.current : nextSelected,
+          recentMessages || liveAllMailboxesRef.current
+            ? mailboxesRef.current
+            : nextSelected,
         )
         const query = messageQueryRef.current
         let nextMessages = messagesRef.current
@@ -841,7 +878,7 @@ export const App = () => {
       liveController.current?.abort()
       liveController.current = null
     }
-  }, [authentication, expireSession])
+  }, [authentication, expireSession, liveReady])
 
   useEffect(() => {
     if (authentication === 'authenticated' && view === 'starred') {
@@ -870,10 +907,12 @@ export const App = () => {
       setSession(authenticatedSession)
       setAuthentication('authenticated')
       setAccessStatus({ message: '' })
-      const [availableMailboxes] = await Promise.all([
+      const [availableMailboxes, , livePrepared] = await Promise.all([
         refreshCatalogs(undefined, true),
         loadTags(),
+        prepareLiveUpdates(),
       ])
+      if (availableMailboxes === undefined || !livePrepared) return
       const location = restoreAvailableMailboxes(
         readLocation(),
         availableMailboxes || null,
@@ -886,14 +925,13 @@ export const App = () => {
       )
       writeLocation(location)
       const restoredMailboxes = location.selectedMailboxes || []
-      if (location.view === 'mailboxes' && restoredMailboxes.length) {
-        await loadMailboxes(
-          restoredMailboxes,
-          location.message,
-          'replace',
-          location.mailbox,
-        )
-      }
+      await loadMailboxes(
+        restoredMailboxes,
+        location.view === 'mailboxes' ? location.message : '',
+        location.view === 'mailboxes' ? 'replace' : null,
+        location.mailbox,
+      )
+      setLiveReady(true)
       mainRef.current?.focus()
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
@@ -1284,6 +1322,14 @@ export const App = () => {
   const restoreMailbox = async (mailbox: string) => {
     await api.restoreMailbox(mailbox)
     await refreshCatalogs(undefined, true)
+    if (!selectedMailboxesRef.current.length) {
+      await loadMailboxes(
+        [],
+        selectedMessage?.id || '',
+        null,
+        selectedMessage?.mailbox || '',
+      )
+    }
   }
 
   const selectStarredMessage = (mailbox: string, id: string) => {
@@ -1328,7 +1374,7 @@ export const App = () => {
   const authenticated = authentication === 'authenticated' && Boolean(session)
   const activeMailboxSummary =
     selectedMailboxes.length === 0
-      ? 'No mailbox selected'
+      ? 'Recent messages'
       : selectedMailboxes.length === 1
         ? selectedMailboxes[0]
         : `${selectedMailboxes.length} mailboxes`
@@ -1393,7 +1439,9 @@ export const App = () => {
               onRead={markRead}
               onRestoredMessage={(restored) => {
                 const visible =
-                  selectedMailboxesRef.current.includes(restored.mailbox) &&
+                  (selectedMailboxesRef.current.length
+                    ? selectedMailboxesRef.current.includes(restored.mailbox)
+                    : mailboxesRef.current.includes(restored.mailbox)) &&
                   filterMessages(
                     [restored],
                     messageQueryRef.current.search,
@@ -1496,7 +1544,7 @@ export const App = () => {
                 listEmptyMessage={
                   selectedMailboxes.length
                     ? 'This mailbox has no messages.'
-                    : 'Select one or more mailboxes to read messages.'
+                    : 'No recent messages. New mail will appear here, or add a mailbox to browse its history.'
                 }
                 inspectorEmptyMessage={inspectorEmptyMessage}
                 onQueryChange={changeMessageQuery}

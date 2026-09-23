@@ -119,6 +119,101 @@ RSpec.describe "Inbucket flow", type: :request do
     expect(response.parsed_body.fetch("total_count")).to eq(2)
   end
 
+  it "returns recent messages across active mailboxes with user state and bounded pages" do
+    user = authenticate
+    index_message(messages.first.merge(mailbox: "orders", id: "oldest", date: "2026-08-11T12:00:00Z"))
+    middle = index_message(messages.first.merge(mailbox: "alerts", id: "middle", date: "2026-08-11T13:00:00Z"))
+    index_message(messages.first.merge(mailbox: "orders", id: "newest", date: "2026-08-11T14:00:00Z"))
+    StarredMessage.create!(user:, inbucket_message: middle)
+    tag = user.tags.create!(name: "Important", color: "#1D4ED8")
+    tag.message_tags.create!(inbucket_message: middle)
+
+    get "/v1/inbucket/messages", params: { scope: "recent", limit: 2 }
+
+    expect(response).to have_http_status(:ok)
+    first_page = response.parsed_body
+    expect(first_page.fetch("messages").map { |item| item.values_at("mailbox", "id") }).to eq(
+      [%w[orders newest], %w[alerts middle]]
+    )
+    expect(first_page.fetch("messages").last).to include(
+      "starred" => true,
+      "tags" => [{ "id" => tag.id, "name" => "Important", "color" => "#1D4ED8" }]
+    )
+    expect(first_page.fetch("total_count")).to eq(3)
+    expect(first_page.fetch("partial_mailboxes")).to eq([])
+    expect(first_page.fetch("next_cursor")).to be_present
+
+    get "/v1/inbucket/messages", params: { scope: "recent", limit: 2, cursor: first_page.fetch("next_cursor") }
+
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body.fetch("messages").map { |item| item.values_at("mailbox", "id") }).to eq(
+      [%w[orders oldest]]
+    )
+    expect(response.parsed_body.fetch("total_count")).to eq(3)
+    expect(response.parsed_body.fetch("next_cursor")).to be_nil
+  end
+
+  it "excludes archived, unavailable and personally trashed messages from recent mail" do
+    user = authenticate
+    other_user = User.create!(username: "other", password: "correct horse battery staple")
+    visible = index_message(messages.first.merge(id: "visible"))
+    TrashedMessage.create!(user: other_user, inbucket_message: visible, trashed_at: Time.current)
+    archived = index_message(messages.first.merge(mailbox: "archived", id: "archived"))
+    Mailbox.find_by!(name: archived.mailbox).update!(archived: true)
+    index_message(messages.first.merge(id: "unavailable")).mark_unavailable!
+    trashed = index_message(messages.first.merge(id: "trashed"))
+    TrashedMessage.create!(user:, inbucket_message: trashed, trashed_at: Time.current)
+
+    get "/v1/inbucket/messages", params: { scope: "recent" }
+
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body.fetch("messages").map { |item| item.fetch("id") }).to eq(["visible"])
+    expect(response.parsed_body.fetch("total_count")).to eq(1)
+  end
+
+  it "filters and sorts recent mail across mailboxes" do
+    user = authenticate
+    tag = user.tags.create!(name: "Invoices", color: "#1D4ED8")
+    small = index_message(messages.first.merge(id: "small", subject: "Invoice ready", size: 100))
+    large = index_message(messages.first.merge(mailbox: "orders", id: "large", subject: "Invoice ready", size: 900))
+    read = index_message(messages.first.merge(id: "read", subject: "Invoice paid", seen: true))
+    unrelated = index_message(messages.first.merge(id: "unrelated", subject: "Hello"))
+    index_message(messages.first.merge(id: "untagged", subject: "Invoice ready"))
+    [small, large, read, unrelated].each { |record| tag.message_tags.create!(inbucket_message: record) }
+
+    get "/v1/inbucket/messages",
+        params: { scope: "recent", search: "invoice", read: "unread", sort: "largest", tag: tag.id }
+
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body.fetch("messages").map { |item| item.fetch("id") }).to eq(%w[large small])
+    expect(response.parsed_body.fetch("total_count")).to eq(2)
+  end
+
+  it "returns recent mail when more than fifty mailboxes are active and upstream is unavailable" do
+    authenticate
+    50.times { |index| Mailbox.create!(name: "mailbox-#{index}") }
+    index_message(messages.first)
+    stub_request(:get, %r{http://inbucket.test:9000/api/v1/mailbox/}).to_timeout
+
+    get "/v1/inbucket/messages", params: { scope: "recent", refresh: true }
+
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body.fetch("messages").map { |item| item.fetch("id") }).to eq([message_id])
+    expect(response.parsed_body.fetch("total_count")).to eq(1)
+    expect(response.parsed_body.fetch("partial_mailboxes")).to eq([])
+  end
+
+  it "returns an empty recent page when no mailboxes are active" do
+    authenticate
+
+    get "/v1/inbucket/messages", params: { scope: "recent" }
+
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body).to eq(
+      "messages" => [], "total_count" => 0, "next_cursor" => nil, "partial_mailboxes" => []
+    )
+  end
+
   it "filters paginated messages by an inclusive displayed date range" do
     authenticate
     index_message(messages.first.merge(id: "before", date: "2026-08-10T23:59:59Z"))

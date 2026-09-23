@@ -83,8 +83,8 @@ export const MailboxTools = ({
       <label className="mailbox-live-toggle">
         <input
           type="checkbox"
-          checked={liveAllMailboxes}
-          disabled={actionPending}
+          checked={!hasSelection || liveAllMailboxes}
+          disabled={actionPending || !hasSelection}
           onChange={(event) =>
             onLiveAllMailboxesChange(event.currentTarget.checked)
           }

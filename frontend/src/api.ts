@@ -99,6 +99,7 @@ const messagesPath = (
 ): string => {
   const params = new URLSearchParams()
   const requestedMailboxes = query.mailbox ? [query.mailbox] : mailboxes
+  if (!requestedMailboxes.length) params.set('scope', 'recent')
   requestedMailboxes.forEach((mailbox) => params.append('mailboxes[]', mailbox))
   if (query.search.trim()) params.set('search', query.search.trim())
   if (query.read !== 'all') params.set('read', query.read)
@@ -108,7 +109,7 @@ const messagesPath = (
   if (range.receivedAfter) params.set('received_after', range.receivedAfter)
   if (range.receivedBefore) params.set('received_before', range.receivedBefore)
   if (cursor) params.set('cursor', cursor)
-  if (refresh) params.set('refresh', 'true')
+  if (refresh && requestedMailboxes.length) params.set('refresh', 'true')
   return `/v1/inbucket/messages?${params.toString()}`
 }
 
