@@ -2,9 +2,9 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
-import { messagePage, session } from './test/fixtures'
-import { renderApp } from './test/renderApp'
-import type { MessageSummary, ParsedMessage } from './types'
+import { messagePage, session } from '../fixtures'
+import { renderApp } from '../renderApp'
+import type { MessageSummary, ParsedMessage } from '../../types'
 
 const frameDocument = (iframe: HTMLIFrameElement): Document => {
   const document = iframe.contentDocument

@@ -30,8 +30,15 @@ class InbucketMonitor
       mailbox = Mailbox.record(header["mailbox"])
       return unless mailbox
 
-      InbucketMessage.with_mailbox_lock(mailbox.name) do
+      message = InbucketMessage.with_mailbox_lock(mailbox.name) do
         InbucketMessage.record(header, source: :monitor)
+      end
+      return unless message
+
+      begin
+        MessageRuleEvaluator.new(message:).call
+      rescue StandardError => error
+        Rails.logger.error("notification evaluation failed: #{error.class}")
       end
     end
 

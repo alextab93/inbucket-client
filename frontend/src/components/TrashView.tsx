@@ -142,7 +142,9 @@ export const TrashView = ({
               ? { ...current, unavailable: true }
               : current
           })
-          setStatus({ message: '' })
+          setStatus((current) =>
+            current.state === 'authenticated' ? current : { message: '' },
+          )
         })
         .catch((error: unknown) => {
           if (isAbort(error)) return

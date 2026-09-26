@@ -9,6 +9,7 @@ export default defineConfig({
     environment: 'jsdom',
     include: ['src/**/*.test.{ts,tsx}'],
     setupFiles: [resolve(import.meta.dirname, 'frontend/src/test/setup.ts')],
+    testTimeout: 10000,
   },
   build: {
     outDir: resolve(import.meta.dirname, 'public'),

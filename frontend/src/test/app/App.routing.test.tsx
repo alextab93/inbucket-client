@@ -8,8 +8,8 @@ import {
   messages,
   parsedInvoice,
   session,
-} from './test/fixtures'
-import { renderApp } from './test/renderApp'
+} from '../fixtures'
+import { renderApp } from '../renderApp'
 
 const routingHandlers = () => [
   http.get('*/v1/session', () => HttpResponse.json(session)),
@@ -41,7 +41,7 @@ const routingHandlers = () => [
 ]
 
 describe('URL navigation', () => {
-  it('exposes exactly four views and clears message state between them', async () => {
+  it('exposes notification settings with the mailbox views and clears message state between them', async () => {
     const user = userEvent.setup()
     renderApp(routingHandlers(), '/?mailbox=orders&message=invoice')
 
@@ -50,8 +50,8 @@ describe('URL navigation', () => {
     ).toBeVisible()
     expect(
       screen.getByRole('navigation', { name: 'Mailbox views' }),
-    ).toHaveTextContent('MailboxesStarredArchivedTrash')
-    expect(screen.getAllByRole('button', { name: 'Sign out' })).toHaveLength(1)
+    ).toHaveTextContent('MailboxesStarred')
+    expect(screen.getByText(session.username)).toBeVisible()
 
     await user.click(screen.getByRole('button', { name: 'Starred' }))
     expect(
@@ -59,6 +59,7 @@ describe('URL navigation', () => {
     ).toBeVisible()
     expect(window.location.search).toBe('?view=starred')
 
+    await user.click(screen.getByText(session.username))
     await user.click(screen.getByRole('button', { name: 'Archived' }))
     expect(
       await screen.findByRole('heading', { name: 'Archived mailboxes' }),
@@ -81,10 +82,12 @@ describe('URL navigation', () => {
     expect(
       await screen.findByRole('heading', { name: visibleHeading }),
     ).toBeVisible()
-    expect(screen.getByRole('button', { name: activeTab })).toHaveAttribute(
-      'aria-current',
-      'page',
-    )
+    if (activeTab !== 'Archived') {
+      expect(screen.getByRole('button', { name: activeTab })).toHaveAttribute(
+        'aria-current',
+        'page',
+      )
+    }
     expect(window.location.search).toBe(
       new URL(path, window.location.origin).search,
     )
@@ -108,6 +111,54 @@ describe('URL navigation', () => {
     ).not.toBeInTheDocument()
     expect(window.location.pathname).toBe('/')
     expect(window.location.search).toBe('')
+  })
+
+  it('canonicalizes the former Notifications URL to Rules', async () => {
+    renderApp(routingHandlers(), '/?view=notifications')
+
+    expect(
+      await screen.findByRole('heading', { name: 'Rules', level: 2 }),
+    ).toBeVisible()
+    expect(window.location.search).toBe('?view=rules')
+  })
+
+  it('keeps account actions reachable at a phone width and closes the menu outside or with Escape', async () => {
+    const user = userEvent.setup()
+    window.innerWidth = 390
+    renderApp(routingHandlers(), '/')
+
+    const accountMenu = await screen.findByText(session.username)
+    await user.click(accountMenu)
+
+    expect(screen.getByRole('button', { name: 'Rules' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Archived' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Trash' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeVisible()
+
+    await user.click(document.body)
+    expect(accountMenu.closest('details')).not.toHaveAttribute('open')
+
+    await user.click(accountMenu)
+    await user.keyboard('{Escape}')
+    expect(accountMenu.closest('details')).not.toHaveAttribute('open')
+    expect(accountMenu).toHaveFocus()
+  })
+
+  it('closes the notification menu outside or with Escape', async () => {
+    const user = userEvent.setup()
+    renderApp(routingHandlers(), '/')
+
+    const bell = await screen.findByRole('button', { name: 'Notifications' })
+    await user.click(bell)
+    expect(screen.getByRole('heading', { name: 'Notifications' })).toBeVisible()
+
+    await user.click(document.body)
+    expect(bell.closest('details')).not.toHaveAttribute('open')
+
+    await user.click(bell)
+    await user.keyboard('{Escape}')
+    expect(bell.closest('details')).not.toHaveAttribute('open')
+    expect(bell).toHaveFocus()
   })
 
   it('restores remaining views and a selected message through popstate', async () => {

@@ -28,7 +28,7 @@ FROM ruby:3.4.5-alpine
 
 WORKDIR /app
 
-RUN apk add --no-cache libpq libstdc++ tzdata
+RUN apk add --no-cache libpq libstdc++ lua5.4 tzdata
 
 COPY --from=gems /usr/local/bundle /usr/local/bundle
 COPY Gemfile Gemfile.lock ./

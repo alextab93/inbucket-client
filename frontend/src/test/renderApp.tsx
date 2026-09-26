@@ -16,6 +16,7 @@ export const renderApp = (handlers: RequestHandler[], initialPath = '/') => {
       }
     }),
     http.get('*/v1/tags', () => HttpResponse.json([])),
+    http.get('*/v1/notifications', () => HttpResponse.json([])),
     http.get('*/v1/inbucket/live/messages', ({ request }) =>
       HttpResponse.json({
         changes: [],

@@ -5,9 +5,11 @@ import { AppHeader } from './components/AppHeader'
 import { ArchivedView } from './components/ArchivedView'
 import { MailboxTools } from './components/MailboxTools'
 import { MessageWorkspace } from './components/MessageWorkspace'
+import { RulesView } from './components/rules/RulesView'
 import { StatusMessage } from './components/StatusMessage'
 import { StarredView } from './components/StarredView'
 import { TrashView } from './components/TrashView'
+import { ToastViewport } from './components/ToastViewport'
 import { filterMessages, sortMessages } from './formatting'
 import { readLocation, writeLocation, type AppLocation } from './location'
 import type {
@@ -94,38 +96,38 @@ const validArchivedMailboxes = (value: unknown): value is ArchivedMailbox[] =>
 const validMessagePage = (value: unknown): value is MessagePage =>
   Boolean(
     value &&
-      typeof value === 'object' &&
-      Array.isArray((value as MessagePage).messages) &&
-      ((value as MessagePage).next_cursor === null ||
-        typeof (value as MessagePage).next_cursor === 'string') &&
-      Array.isArray((value as MessagePage).partial_mailboxes) &&
-      (value as MessagePage).partial_mailboxes.every(
-        (mailbox) => typeof mailbox === 'string',
-      ) &&
-      Number.isInteger((value as MessagePage).total_count) &&
-      (value as MessagePage).total_count >= 0,
+    typeof value === 'object' &&
+    Array.isArray((value as MessagePage).messages) &&
+    ((value as MessagePage).next_cursor === null ||
+      typeof (value as MessagePage).next_cursor === 'string') &&
+    Array.isArray((value as MessagePage).partial_mailboxes) &&
+    (value as MessagePage).partial_mailboxes.every(
+      (mailbox) => typeof mailbox === 'string',
+    ) &&
+    Number.isInteger((value as MessagePage).total_count) &&
+    (value as MessagePage).total_count >= 0,
   )
 
 const validLiveMessagePage = (value: unknown): value is LiveMessagePage =>
   Boolean(
     value &&
-      typeof value === 'object' &&
-      Array.isArray((value as LiveMessagePage).changes) &&
-      (value as LiveMessagePage).changes.every(
-        (change) =>
-          change &&
-          typeof change.mailbox === 'string' &&
-          typeof change.id === 'string' &&
-          typeof change.available === 'boolean' &&
-          typeof change.created === 'boolean' &&
-          typeof change.archived === 'boolean' &&
-          change.message &&
-          typeof change.message === 'object',
-      ) &&
-      ((value as LiveMessagePage).active_mailboxes === undefined ||
-        validActiveMailboxes((value as LiveMessagePage).active_mailboxes)) &&
-      typeof (value as LiveMessagePage).cursor === 'string' &&
-      typeof (value as LiveMessagePage).has_more === 'boolean',
+    typeof value === 'object' &&
+    Array.isArray((value as LiveMessagePage).changes) &&
+    (value as LiveMessagePage).changes.every(
+      (change) =>
+        change &&
+        typeof change.mailbox === 'string' &&
+        typeof change.id === 'string' &&
+        typeof change.available === 'boolean' &&
+        typeof change.created === 'boolean' &&
+        typeof change.archived === 'boolean' &&
+        change.message &&
+        typeof change.message === 'object',
+    ) &&
+    ((value as LiveMessagePage).active_mailboxes === undefined ||
+      validActiveMailboxes((value as LiveMessagePage).active_mailboxes)) &&
+    typeof (value as LiveMessagePage).cursor === 'string' &&
+    typeof (value as LiveMessagePage).has_more === 'boolean',
   )
 
 export const App = () => {
@@ -895,7 +897,9 @@ export const App = () => {
           ? 'trash-messages-title'
           : view === 'archive'
             ? 'archived-mailboxes-title'
-            : 'mailbox-title'
+            : view === 'rules'
+              ? 'rules-title'
+              : 'mailbox-title'
     document.getElementById(targetId)?.focus()
   }, [authentication, view])
 
@@ -1388,15 +1392,18 @@ export const App = () => {
 
   return (
     <>
+      <ToastViewport />
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
       <AppHeader
         authenticated={authenticated}
+        username={session?.username || ''}
         view={view}
         signingOut={signingOut}
         onViewChange={changeView}
         onSignOut={() => void signOut()}
+        onUnauthorized={expireSession}
       />
       <main
         ref={mainRef}
@@ -1498,6 +1505,11 @@ export const App = () => {
                 await refreshCatalogs(undefined, true)
               }}
               onUnauthorized={expireSession}
+            />
+            <RulesView
+              active={view === 'rules'}
+              onUnauthorized={expireSession}
+              mailboxes={mailboxes}
             />
             <div className="mailbox-view" hidden={view !== 'mailboxes'}>
               <div

@@ -22,6 +22,8 @@ class Tag < ApplicationRecord
   validates :name, presence: true, length: { maximum: 40 }, uniqueness: { scope: :user_id, case_sensitive: false }
   validates :color, presence: true, format: { with: COLOR_PATTERN }
 
+  before_destroy :remove_from_rule_actions
+
   scope :ordered, -> { order(Arel.sql("lower(name) ASC"), :id) }
 
   def self.lookup(user:, messages:)
@@ -35,6 +37,13 @@ class Tag < ApplicationRecord
 
   def rendered
     { id:, name:, color: }
+  end
+
+  def remove_from_rule_actions
+    user.message_rules.where("actions -> 'tag_ids' @> ?", [id].to_json).find_each do |rule|
+      actions = rule.actions.merge("tag_ids" => rule.action_tag_ids - [id])
+      rule.update!(actions:, enabled: rule.enabled? && rule.actions_configured?(actions))
+    end
   end
 
   def self.identity_keys(messages)

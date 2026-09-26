@@ -93,6 +93,69 @@
     overflow: auto;
   }
 
+  .rules-view {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .rules-heading,
+  .notification-section-heading,
+  .rule-action-destinations-heading,
+  .rule-card,
+  .notification-delivery-list li {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .rule-action-destinations-heading .button {
+    width: 100%;
+  }
+
+  .notification-destination-form,
+  .notification-form-row,
+  .rule-form {
+    grid-template-columns: 1fr;
+  }
+
+  .rule-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .rule-action-list {
+    grid-template-columns: 1fr;
+  }
+
+  .rule-steps button {
+    min-height: 44px;
+  }
+
+  .notification-day-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .notification-time-window-actions {
+    justify-content: flex-start;
+  }
+
+  .notification-time-window-actions .button,
+  .notification-time-window-add {
+    width: 100%;
+  }
+
+  .notification-time-window-footer {
+    grid-template-columns: 1fr;
+  }
+
+  .notification-destination-form > :has(textarea),
+  .notification-destination-form > button {
+    grid-column: auto;
+  }
+
+  .account-menu summary {
+    padding: 8px 10px;
+  }
+
   .mailbox-layout {
     min-height: 0;
     grid-template-columns: 1fr;
@@ -181,21 +244,26 @@
     font-size: 1.35rem;
   }
 
-  .inbucket-header .button-secondary {
+  .header-actions {
     grid-column: 2;
     grid-row: 1;
-    width: auto;
-    min-height: 25px;
-    padding-inline: 10px;
-    font-size: 0.85rem;
-    line-height: 1.25;
+    margin-left: 0;
+  }
+
+  .notification-menu-panel {
+    max-height: calc(100dvh - 7rem);
+  }
+
+  .notification-menu-heading {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .inbucket-tabs {
     display: grid;
     grid-column: 1 / -1;
     grid-row: 2;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 2px;
     width: 100%;
     margin: 0;
@@ -205,6 +273,37 @@
     min-height: 40px;
     padding: 6px 3px;
     font-size: 0.82rem;
+  }
+
+  .rule-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .notification-section-heading,
+  .rule-card,
+  .notification-delivery-list li,
+  .notification-destination-list li {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .notification-destination-row-actions {
+    width: 100%;
+  }
+
+  .notification-destination-row-actions .button {
+    flex: 1;
+  }
+
+  .rule-preview-backdrop,
+  .notification-destination-editor-backdrop {
+    padding: 12px;
+  }
+
+  .rule-preview,
+  .notification-destination-editor-modal {
+    max-height: calc(100dvh - 24px);
+    padding: 14px;
   }
 
   .container.inbucket-main {

@@ -5,4 +5,10 @@ Rails.application.config.filter_parameters += %i[
   cookie
   authorization
   secret_key_base
+  methods
+  headers
+  body
+  url
+  host
+  recipients
 ]

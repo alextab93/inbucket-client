@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_08_30_010000) do
+ActiveRecord::Schema[8.0].define(version: 2026_09_27_010000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -51,6 +51,24 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_30_010000) do
     t.index ["name"], name: "index_mailboxes_on_name", unique: true
   end
 
+  create_table "message_rules", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "name", null: false
+    t.boolean "enabled", default: true, null: false
+    t.integer "priority", default: 0, null: false
+    t.integer "cooldown_seconds", default: 300, null: false
+    t.integer "schema_version", default: 4, null: false
+    t.jsonb "conditions", default: {}, null: false
+    t.jsonb "actions", default: {}, null: false
+    t.string "last_error_code"
+    t.datetime "last_failed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.datetime "last_triggered_at"
+    t.index "user_id, lower((name)::text)", name: "index_message_rules_on_user_and_lower_name", unique: true
+    t.index ["user_id"], name: "index_message_rules_on_user_id"
+  end
+
   create_table "message_tags", force: :cascade do |t|
     t.bigint "tag_id", null: false
     t.bigint "inbucket_message_id", null: false
@@ -59,6 +77,57 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_30_010000) do
     t.index ["inbucket_message_id"], name: "index_message_tags_on_inbucket_message_id"
     t.index ["tag_id", "inbucket_message_id"], name: "index_message_tags_on_tag_id_and_inbucket_message_id", unique: true
     t.index ["tag_id"], name: "index_message_tags_on_tag_id"
+  end
+
+  create_table "notification_deliveries", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "message_rule_id"
+    t.bigint "inbucket_message_id"
+    t.string "mailbox", null: false
+    t.string "message_id", null: false
+    t.string "kind", null: false
+    t.string "status", null: false
+    t.string "recipient"
+    t.string "deduplication_key", null: false
+    t.integer "attempt_count", default: 0, null: false
+    t.datetime "next_attempt_at"
+    t.datetime "locked_at"
+    t.datetime "delivered_at"
+    t.datetime "failed_at"
+    t.datetime "read_at"
+    t.datetime "cleared_at"
+    t.string "error_code"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "notification_destination_id"
+    t.datetime "last_attempt_at"
+    t.index ["deduplication_key"], name: "index_notification_deliveries_on_deduplication_key", unique: true
+    t.index ["inbucket_message_id"], name: "index_notification_deliveries_on_inbucket_message_id"
+    t.index ["kind", "last_attempt_at"], name: "index_notification_deliveries_for_rate_limit"
+    t.index ["kind", "status", "next_attempt_at"], name: "index_notification_deliveries_for_delivery"
+    t.index ["message_rule_id"], name: "index_notification_deliveries_on_message_rule_id"
+    t.index ["notification_destination_id"], name: "index_notification_deliveries_on_notification_destination_id"
+    t.index ["user_id", "cleared_at", "created_at"], name: "index_notification_deliveries_for_center"
+    t.index ["user_id"], name: "index_notification_deliveries_on_user_id"
+  end
+
+  create_table "notification_destinations", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "name", null: false
+    t.jsonb "methods", default: [], null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "user_id, lower((name)::text)", name: "index_notification_destinations_on_user_and_lower_name", unique: true
+    t.index ["user_id"], name: "index_notification_destinations_on_user_id"
+  end
+
+  create_table "rule_lua_states", force: :cascade do |t|
+    t.string "desired_revision", null: false
+    t.string "active_revision"
+    t.string "last_error_code"
+    t.datetime "last_failed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "starred_messages", force: :cascade do |t|
@@ -114,8 +183,14 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_30_010000) do
   end
 
   add_foreign_key "inbucket_messages", "mailboxes", column: "mailbox", primary_key: "name", on_delete: :cascade
+  add_foreign_key "message_rules", "users"
   add_foreign_key "message_tags", "inbucket_messages", on_delete: :cascade
   add_foreign_key "message_tags", "tags", on_delete: :cascade
+  add_foreign_key "notification_deliveries", "inbucket_messages", on_delete: :nullify
+  add_foreign_key "notification_deliveries", "message_rules", on_delete: :nullify
+  add_foreign_key "notification_deliveries", "notification_destinations", on_delete: :nullify
+  add_foreign_key "notification_deliveries", "users"
+  add_foreign_key "notification_destinations", "users"
   add_foreign_key "starred_messages", "inbucket_messages", on_delete: :cascade
   add_foreign_key "starred_messages", "users"
   add_foreign_key "tags", "users"

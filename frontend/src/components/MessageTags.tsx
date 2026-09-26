@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { showToast } from '../toast'
 import type { Tag } from '../types'
 
 export const TAG_PRESETS = [
@@ -85,25 +86,23 @@ const TagEditor = ({
   const [name, setName] = useState(initial?.name || '')
   const [color, setColor] = useState(initial?.color || TAG_PRESETS[0][1])
   const [pending, setPending] = useState(false)
-  const [error, setError] = useState('')
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
     const normalizedName = name.trim().replace(/\s+/g, ' ')
     if (!normalizedName || normalizedName.length > 40) {
-      setError('Tag names must contain 1 to 40 characters.')
+      showToast('Tag names must contain 1 to 40 characters.', 'error')
       return
     }
     if (!canonicalColor.test(color)) {
-      setError('Choose a valid tag color.')
+      showToast('Choose a valid tag color.', 'error')
       return
     }
     setPending(true)
-    setError('')
     try {
       await onSubmit(normalizedName, color)
     } catch {
-      setError('The tag could not be saved. Check for a duplicate name.')
+      showToast('The tag could not be saved. Check for a duplicate name.', 'error')
     } finally {
       setPending(false)
     }
@@ -154,7 +153,6 @@ const TagEditor = ({
           <output>{color}</output>
         </span>
       </label>
-      {error ? <p className="tag-error">{error}</p> : null}
       <div className="tag-editor-actions">
         <button type="submit" disabled={pending}>
           {pending ? 'Saving tag.' : submitLabel}

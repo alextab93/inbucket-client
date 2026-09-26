@@ -2,8 +2,21 @@ Rails.application.routes.draw do
   get "up" => "health#show", as: :rails_health_check
 
   namespace :v1 do
+    post "internal/rule-events" => "internal_rule_events#create"
     resource :session, only: %i[show create destroy]
     resources :tags, only: %i[index create update destroy]
+    resources :rules, only: %i[index create update destroy] do
+      post :duplicate, on: :member
+      post :preview, on: :collection
+    end
+    resources :notification_destinations, only: %i[index create update destroy] do
+      post :test, action: :test_delivery, on: :member
+    end
+    get "notifications" => "notifications#index"
+    patch "notifications/:id/read" => "notifications#read"
+    patch "notifications/:id/clear" => "notifications#clear"
+    patch "notifications/:id/browser-delivered" => "notifications#browser_delivered"
+    patch "notifications/:id/retry" => "notifications#retry"
     get "email-frame" => "email_frames#show"
     get "inbucket/mailboxes" => "inbucket_mailboxes#index"
     get "inbucket/messages" => "inbucket_messages#index"

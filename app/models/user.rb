@@ -5,6 +5,9 @@ class User < ApplicationRecord
   has_many :starred_inbucket_messages, through: :starred_messages, source: :inbucket_message
   has_many :trashed_messages, dependent: :destroy
   has_many :tags, dependent: :destroy
+  has_many :message_rules, dependent: :destroy
+  has_many :notification_destinations, dependent: :destroy
+  has_many :notification_deliveries, dependent: :destroy
   has_many :user_sessions, dependent: :destroy
 
   normalizes :username, with: ->(username) { username.strip.downcase }

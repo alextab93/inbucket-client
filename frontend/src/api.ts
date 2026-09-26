@@ -5,6 +5,13 @@ import type {
   MessageListQuery,
   MessagePage,
   MessageSummary,
+  NotificationDelivery,
+  NotificationDestination,
+  NotificationDestinationsResponse,
+  NotificationDestinationMethod,
+  NotificationDestinationTestResult,
+  MessageRule,
+  MessageRulesResponse,
   ParsedMessage,
   Session,
   Tag,
@@ -12,15 +19,24 @@ import type {
 } from './types'
 import { dateRangeInstants } from './dateRange'
 
+type MessageRuleInput = Omit<
+  MessageRule,
+  'id' | 'summary' | 'last_error_code' | 'last_failed_at'
+>
+
+type NotificationDestinationInput = Omit<NotificationDestination, 'id'>
+
 type ResponseType = 'json' | 'text' | 'empty' | 'blob'
 
 export class ApiError extends Error {
   readonly status: number
+  readonly fields?: Record<string, string[]>
 
-  constructor(status: number, message = 'request_failed') {
+  constructor(status: number, message = 'request_failed', fields?: Record<string, string[]>) {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.fields = fields
   }
 }
 
@@ -46,13 +62,15 @@ const request = async <T>(
   }
   if (!response.ok) {
     let message = 'request_failed'
+    let fields: Record<string, string[]> | undefined
     try {
-      const body = (await response.clone().json()) as { error?: unknown }
+      const body = (await response.clone().json()) as { error?: unknown; fields?: Record<string, string[]> }
       if (typeof body.error === 'string') message = body.error
+      fields = body.fields
     } catch {
       message = 'request_failed'
     }
-    throw new ApiError(response.status, message)
+    throw new ApiError(response.status, message, fields)
   }
   if (responseType === 'empty') return undefined as T
   if (responseType === 'text') return (await response.text()) as T
@@ -176,6 +194,103 @@ export const api = {
       `/v1/tags/${encode(id)}`,
       jsonOptions('DELETE', undefined, signal),
       'empty',
+    ),
+  rules: (signal?: AbortSignal) =>
+    request<MessageRulesResponse>('/v1/rules', { signal }),
+  notificationDestinations: (signal?: AbortSignal) =>
+    request<NotificationDestinationsResponse>(
+      '/v1/notification_destinations',
+      { signal },
+    ),
+  createNotificationDestination: (
+    body: NotificationDestinationInput,
+    signal?: AbortSignal,
+  ) =>
+    request<NotificationDestination>(
+      '/v1/notification_destinations',
+      jsonOptions('POST', body, signal),
+    ),
+  updateNotificationDestination: (
+    id: number,
+    body: NotificationDestinationInput,
+    signal?: AbortSignal,
+  ) =>
+    request<NotificationDestination>(
+      `/v1/notification_destinations/${encode(id)}`,
+      jsonOptions('PATCH', body, signal),
+    ),
+  deleteNotificationDestination: (id: number, signal?: AbortSignal) =>
+    request<void>(
+      `/v1/notification_destinations/${encode(id)}`,
+      jsonOptions('DELETE', undefined, signal),
+      'empty',
+    ),
+  testNotificationDestination: (
+    id: number,
+    kind: NotificationDestinationMethod['kind'],
+    signal?: AbortSignal,
+  ) =>
+    request<NotificationDestinationTestResult>(
+      `/v1/notification_destinations/${encode(id)}/test`,
+      jsonOptions('POST', { kind }, signal),
+    ),
+  createMessageRule: (body: MessageRuleInput, signal?: AbortSignal) =>
+    request<MessageRule>(
+      '/v1/rules',
+      jsonOptions('POST', body, signal),
+    ),
+  updateMessageRule: (
+    id: number,
+    body: MessageRuleInput,
+    signal?: AbortSignal,
+  ) =>
+    request<MessageRule>(
+      `/v1/rules/${encode(id)}`,
+      jsonOptions('PATCH', body, signal),
+    ),
+  duplicateMessageRule: (id: number, signal?: AbortSignal) =>
+    request<MessageRule>(
+      `/v1/rules/${encode(id)}/duplicate`,
+      jsonOptions('POST', undefined, signal),
+    ),
+  deleteMessageRule: (id: number, signal?: AbortSignal) =>
+    request<void>(
+      `/v1/rules/${encode(id)}`,
+      jsonOptions('DELETE', undefined, signal),
+      'empty',
+    ),
+  previewMessageRule: (
+    body: MessageRuleInput,
+    signal?: AbortSignal,
+  ) =>
+    request<{ matches: Array<{ mailbox: string; message_id: string; subject?: string; sender?: string; recipients?: string[]; received_at?: string; size?: number }>; inspected: number; incomplete: boolean }>(
+      '/v1/rules/preview',
+      jsonOptions('POST', body, signal),
+    ),
+  notifications: (signal?: AbortSignal) =>
+    request<NotificationDelivery[]>('/v1/notifications', { signal }),
+  markNotificationRead: (id: number, signal?: AbortSignal) =>
+    request<void>(
+      `/v1/notifications/${encode(id)}/read`,
+      jsonOptions('PATCH', undefined, signal),
+      'empty',
+    ),
+  clearNotification: (id: number, signal?: AbortSignal) =>
+    request<void>(
+      `/v1/notifications/${encode(id)}/clear`,
+      jsonOptions('PATCH', undefined, signal),
+      'empty',
+    ),
+  markBrowserNotificationDelivered: (id: number, signal?: AbortSignal) =>
+    request<void>(
+      `/v1/notifications/${encode(id)}/browser-delivered`,
+      jsonOptions('PATCH', undefined, signal),
+      'empty',
+    ),
+  retryNotification: (id: number, signal?: AbortSignal) =>
+    request<NotificationDelivery>(
+      `/v1/notifications/${encode(id)}/retry`,
+      jsonOptions('PATCH', undefined, signal),
     ),
   mailbox: (mailbox: string, signal?: AbortSignal) =>
     request<MessageSummary[]>(mailboxPath(mailbox), { signal }),

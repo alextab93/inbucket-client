@@ -2,9 +2,9 @@ import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
-import { messagePage, messages, parsedInvoice, session } from './test/fixtures'
-import { renderApp } from './test/renderApp'
-import type { MessageSummary } from './types'
+import { messagePage, messages, parsedInvoice, session } from '../fixtures'
+import { renderApp } from '../renderApp'
+import type { MessageSummary } from '../../types'
 
 const baseHandlers = () => [
   http.get('*/v1/session', () => HttpResponse.json(session)),

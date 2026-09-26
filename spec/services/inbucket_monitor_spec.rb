@@ -44,6 +44,15 @@ RSpec.describe InbucketMonitor do
     expect(Mailbox.where(name: "start9-edge").count).to eq(1)
   end
 
+  it "keeps processing later stored-message events after malformed input" do
+    described_class.record("{")
+    described_class.record(
+      { variant: "message-stored", header: { mailbox: "start9-edge", id: "message-after-malformed" } }.to_json
+    )
+
+    expect(InbucketMessage.find_by(mailbox: "start9-edge", message_id: "message-after-malformed")).to be_present
+  end
+
   it "removes every star when Inbucket reports a deleted message" do
     user = User.create!(username: "admin", password: "password-123")
     described_class.record(

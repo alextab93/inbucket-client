@@ -2,9 +2,9 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
-import { messagePage, messages, parsedInvoice, session } from './test/fixtures'
-import { renderApp } from './test/renderApp'
-import type { MessageSummary, Tag } from './types'
+import { messagePage, messages, parsedInvoice, session } from '../fixtures'
+import { renderApp } from '../renderApp'
+import type { MessageSummary, Tag } from '../../types'
 
 const revelo: Tag = { id: 1, name: 'Revelo', color: '#1D4ED8' }
 const followUp: Tag = { id: 2, name: 'Follow up', color: '#15803D' }

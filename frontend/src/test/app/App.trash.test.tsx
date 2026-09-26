@@ -2,10 +2,10 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { delay, http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
-import { filterMessages, sortMessages } from './formatting'
-import { messagePage, messages, parsedInvoice, session } from './test/fixtures'
-import { renderApp } from './test/renderApp'
-import type { ListSort, MessageSummary, ReadFilter, TrashResult } from './types'
+import { filterMessages, sortMessages } from '../../formatting'
+import { messagePage, messages, parsedInvoice, session } from '../fixtures'
+import { renderApp } from '../renderApp'
+import type { ListSort, MessageSummary, ReadFilter, TrashResult } from '../../types'
 
 const catalogs = () =>
   http.get('*/v1/inbucket/mailboxes', ({ request }) =>

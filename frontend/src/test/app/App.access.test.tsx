@@ -2,8 +2,8 @@ import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
-import { messagePage, messages, parsedInvoice, session } from './test/fixtures'
-import { renderApp } from './test/renderApp'
+import { messagePage, messages, parsedInvoice, session } from '../fixtures'
+import { renderApp } from '../renderApp'
 
 const mailboxCatalog = http.get('*/v1/inbucket/mailboxes', ({ request }) => {
   const archived = new URL(request.url).searchParams.get('archived') === 'true'
