@@ -1,4 +1,4 @@
-FROM node:22-alpine AS frontend
+FROM --platform=$BUILDPLATFORM node:22-alpine AS frontend
 
 WORKDIR /build
 
