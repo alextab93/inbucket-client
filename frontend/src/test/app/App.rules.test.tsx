@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { session } from '../fixtures'
 import { renderApp } from '../renderApp'
+import { server } from '../server'
 import type {
   NotificationDelivery,
   NotificationDestination,
@@ -177,7 +178,7 @@ describe('Rules', () => {
     )
     expect(
       screen.getByRole('tooltip', {
-        name: /Show rule alerts through this browser/,
+        name: /Show a system notification outside the Inbucket page/,
       }),
     ).toBeVisible()
     await user.click(browserSwitch)
@@ -188,6 +189,60 @@ describe('Rules', () => {
     await user.click(browserSwitch)
     expect(browserSwitch).not.toBeChecked()
     expect(screen.getByText('Off')).toBeVisible()
+  })
+
+  it('shows a new browser notification without opening the bell menu', async () => {
+    const shown = vi.fn()
+    class BrowserNotification {
+      static permission: NotificationPermission = 'granted'
+
+      constructor(...args: unknown[]) {
+        shown(...args)
+      }
+    }
+    vi.stubGlobal('Notification', BrowserNotification)
+    renderApp(handlers([]), '/?view=rules')
+
+    await screen.findByRole('heading', { name: 'Rules' })
+    await waitFor(() =>
+      expect(screen.queryByText('Loading notifications.')).not.toBeInTheDocument(),
+    )
+    server.use(
+      http.get('*/v1/notifications', () =>
+        HttpResponse.json([
+          {
+            id: 8,
+            rule_name: 'Order alerts',
+            mailbox: 'orders',
+            message_id: 'invoice-browser-later',
+            kind: 'browser',
+            status: 'pending',
+            recipient: null,
+            created_at: '2026-09-24T12:00:00.000000Z',
+            delivered_at: null,
+            read_at: null,
+            error_code: null,
+          },
+        ]),
+      ),
+      http.patch(
+        '*/v1/notifications/8/browser-delivered',
+        () => new HttpResponse(null, { status: 204 }),
+      ),
+    )
+
+    fireEvent(document, new Event('visibilitychange'))
+
+    await waitFor(() =>
+      expect(shown).toHaveBeenCalledWith('Inbucket notification', {
+        body: 'Order alerts: orders',
+        tag: 'inbucket-8',
+      }),
+    )
+    const bell = screen.getByRole('button', {
+      name: 'Notifications, 1 unread',
+    })
+    expect(bell.closest('details')).not.toHaveAttribute('open')
   })
 
   it('keeps a browser delivery pending and shows a visible error when the browser rejects it', async () => {

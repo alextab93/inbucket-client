@@ -24,6 +24,7 @@ const formatTime = (value: string): string =>
   }).format(new Date(value))
 
 const browserNotificationsPreferenceKey = 'inbucket-browser-notifications'
+const notificationRefreshInterval = 10_000
 
 const savedBrowserNotificationsPreference = (): boolean | null => {
   try {
@@ -58,10 +59,12 @@ export const NotificationMenu = forwardRef<
     return savedBrowserNotificationsPreference() ?? true
   })
   const announcedBrowserDeliveries = useRef(new Set<number>())
+  const refreshInFlight = useRef(false)
 
-  const load = useCallback(async () => {
-    if (!active) return
-    setLoading(true)
+  const load = useCallback(async (showLoading = true) => {
+    if (!active || refreshInFlight.current) return
+    refreshInFlight.current = true
+    if (showLoading) setLoading(true)
     try {
       setDeliveries(await api.notifications())
       setError('')
@@ -69,13 +72,28 @@ export const NotificationMenu = forwardRef<
       if (isUnauthorized(loadError)) return onUnauthorized()
       setError(visibleError(loadError, 'Notifications'))
     } finally {
-      setLoading(false)
+      if (showLoading) setLoading(false)
+      refreshInFlight.current = false
     }
   }, [active, onUnauthorized])
 
   useEffect(() => {
     if (active) {
       void load()
+      const refresh = () => void load(false)
+      const interval = window.setInterval(
+        refresh,
+        notificationRefreshInterval,
+      )
+      window.addEventListener('focus', refresh)
+      window.addEventListener('online', refresh)
+      document.addEventListener('visibilitychange', refresh)
+      return () => {
+        window.clearInterval(interval)
+        window.removeEventListener('focus', refresh)
+        window.removeEventListener('online', refresh)
+        document.removeEventListener('visibilitychange', refresh)
+      }
     } else {
       setDeliveries([])
       setError('')
@@ -269,10 +287,10 @@ export const NotificationMenu = forwardRef<
           <div className="notification-browser-label">
             <h3 id="browser-notification-title">Browser notifications</h3>
             <InfoTooltip label="Browser notifications">
-              Show rule alerts through this browser while Inbucket is open. Turn
-              this on to ask your browser for permission. You can turn alerts
-              off here after permission is granted. Browser settings control the
-              permission itself.
+              Show a system notification outside the Inbucket page while this
+              browser keeps Inbucket open. In-app notifications stay in the bell
+              instead. Turn this on to ask your browser for permission. Browser
+              settings control the permission itself.
             </InfoTooltip>
           </div>
           <div className="notification-browser-switch">
