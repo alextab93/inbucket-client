@@ -7,13 +7,16 @@ RSpec.describe "Rules", type: :request do
     original_token = ENV["LUA_EVENT_TOKEN"]
     original_path = ENV["LUA_SCRIPT_PATH"]
     original_compiler = ENV["LUA_COMPILER"]
+    original_callback_url = ENV["LUA_CALLBACK_URL"]
     ENV["LUA_EVENT_TOKEN"] = "a" * 48
     ENV["LUA_SCRIPT_PATH"] = Rails.root.join("tmp", "notification-rules-#{Process.pid}.lua").to_s
+    ENV["LUA_CALLBACK_URL"] = "http://client.test:3000/v1/internal/rule-events"
     example.run
   ensure
     ENV["LUA_EVENT_TOKEN"] = original_token
     ENV["LUA_SCRIPT_PATH"] = original_path
     ENV["LUA_COMPILER"] = original_compiler
+    ENV["LUA_CALLBACK_URL"] = original_callback_url
   end
 
   it "requires an authenticated session for notification configuration" do

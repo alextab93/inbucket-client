@@ -1,0 +1,127 @@
+x-client-environment: &client-environment
+  DATABASE_URL: postgresql://inbucket_client:${DATABASE_PASSWORD}@postgres:5432/inbucket_client
+  SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+  RAILS_ENV: production
+  RAILS_LOG_TO_STDOUT: 'true'
+  RAILS_SERVE_STATIC_FILES: 'true'
+  PORT: '3000'
+  INBUCKET_BASE_URL: http://inbucket:9000
+  LUA_EVENT_TOKEN: ${LUA_EVENT_TOKEN}
+  LUA_SCRIPT_PATH: /inbucket-config/inbucket.lua
+  LUA_CALLBACK_URL: http://client:3000/v1/internal/rule-events
+  LUA_COMPILER: luac5.4
+  CLIENT_PUBLIC_URL: ${CLIENT_PUBLIC_URL}
+  ADMIN_USERNAME: ${ADMIN_USERNAME}
+  ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+  OUTBOUND_SMTP_ENABLED: ${OUTBOUND_SMTP_ENABLED:-false}
+  OUTBOUND_SMTP_HOST: ${OUTBOUND_SMTP_HOST:-}
+  OUTBOUND_SMTP_PORT: ${OUTBOUND_SMTP_PORT:-}
+  OUTBOUND_SMTP_USERNAME: ${OUTBOUND_SMTP_USERNAME:-}
+  OUTBOUND_SMTP_PASSWORD: ${OUTBOUND_SMTP_PASSWORD:-}
+  OUTBOUND_SMTP_FROM: ${OUTBOUND_SMTP_FROM:-}
+  OUTBOUND_SMTP_SECURITY: ${OUTBOUND_SMTP_SECURITY:-starttls}
+
+services:
+  postgres:
+    image: postgres:17.6-alpine
+    environment:
+      POSTGRES_DB: inbucket_client
+      POSTGRES_USER: inbucket_client
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U inbucket_client -d inbucket_client']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  client-prepare:
+    build: .
+    environment: *client-environment
+    volumes:
+      - inbucket-config:/inbucket-config
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      - sh
+      - -c
+      - >-
+        bin/rails db:prepare && bin/rails runner 'RuleLuaScript.write!' &&
+        bin/rails runner 'AdminAccount.sync!(username: ENV.fetch("ADMIN_USERNAME"),
+        password: ENV.fetch("ADMIN_PASSWORD"))'
+
+  inbucket:
+    image: inbucket/inbucket:3.1.1
+    environment:
+      INBUCKET_MAILBOXNAMING: local
+      INBUCKET_SMTP_ADDR: 0.0.0.0:2500
+      INBUCKET_SMTP_DOMAIN: ${INBUCKET_DOMAIN}
+      INBUCKET_SMTP_MAXMESSAGEBYTES: ${INBUCKET_SMTP_MAXMESSAGEBYTES:-52428800}
+      INBUCKET_SMTP_DEFAULTACCEPT: 'false'
+      INBUCKET_SMTP_ACCEPTDOMAINS: ${INBUCKET_DOMAIN}
+      INBUCKET_SMTP_DEFAULTSTORE: 'false'
+      INBUCKET_SMTP_STOREDOMAINS: ${INBUCKET_DOMAIN}
+      INBUCKET_SMTP_TIMEOUT: 30s
+      INBUCKET_WEB_ADDR: 0.0.0.0:9000
+      INBUCKET_POP3_ADDR: 127.0.0.1:1100
+      INBUCKET_STORAGE_TYPE: file
+      INBUCKET_STORAGE_PARAMS: path:/storage
+      INBUCKET_STORAGE_RETENTIONPERIOD: ${INBUCKET_STORAGE_RETENTIONPERIOD:-1h}
+      INBUCKET_STORAGE_MAILBOXMSGCAP: ${INBUCKET_STORAGE_MAILBOXMSGCAP:-300}
+      INBUCKET_LUA_PATH: /config/inbucket.lua
+    volumes:
+      - inbucket-config:/config
+      - inbucket-storage:/storage
+    depends_on:
+      client-prepare:
+        condition: service_completed_successfully
+    ports:
+      - 2500:2500
+
+  client:
+    build: .
+    environment: *client-environment
+    volumes:
+      - inbucket-config:/inbucket-config
+    depends_on:
+      client-prepare:
+        condition: service_completed_successfully
+    ports:
+      - 3000:3000
+
+  monitor:
+    build: .
+    environment: *client-environment
+    volumes:
+      - inbucket-config:/inbucket-config
+    depends_on:
+      inbucket:
+        condition: service_started
+    command: ['bin/rails', 'runner', 'InbucketMonitor.run']
+
+  reconciler:
+    build: .
+    environment: *client-environment
+    volumes:
+      - inbucket-config:/inbucket-config
+    depends_on:
+      inbucket:
+        condition: service_started
+    command: ['bin/rails', 'runner', 'InbucketReconciler.new.run']
+
+  notification-delivery-worker:
+    build: .
+    environment: *client-environment
+    volumes:
+      - inbucket-config:/inbucket-config
+    depends_on:
+      client-prepare:
+        condition: service_completed_successfully
+    command: ['bin/rails', 'runner', 'NotificationDeliveryWorker.run']
+
+volumes:
+  inbucket-config:
+  inbucket-storage:
+  postgres-data:

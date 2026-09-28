@@ -1,6 +1,8 @@
 require "fileutils"
+require "json"
 require "open3"
 require "tempfile"
+require "uri"
 
 class RuleLuaScript
   class Unavailable < StandardError
@@ -22,8 +24,9 @@ class RuleLuaScript
       raise Unavailable unless TOKEN_PATTERN.match?(token)
 
       path = ENV.fetch("LUA_SCRIPT_PATH")
+      event_callback_url = callback_url
       FileUtils.mkdir_p(File.dirname(path))
-      rendered = source(revision:, token:)
+      rendered = source(revision:, token:, callback_url: event_callback_url)
       validate!(rendered)
       replace!(path, rendered) unless File.exist?(path) && File.read(path) == rendered
       state = RuleLuaState.order(:id).first_or_create!(desired_revision: revision)
@@ -50,7 +53,16 @@ class RuleLuaScript
 
     private
 
-    def source(revision:, token:)
+    def callback_url
+      url = URI.parse(ENV.fetch("LUA_CALLBACK_URL"))
+      return url.to_s if url.is_a?(URI::HTTP) && url.host.present? && url.path == "/v1/internal/rule-events" && url.query.nil?
+
+      raise Invalid
+    rescue URI::InvalidURIError, KeyError
+      raise Invalid
+    end
+
+    def source(revision:, token:, callback_url:)
       <<~LUA
         local http = require("http")
         local json = require("json")
@@ -59,7 +71,7 @@ class RuleLuaScript
         local event_revision = "#{revision}"
 
         function inbucket.after.message_stored(message)
-          assert(http.post("http://127.0.0.1:3000/v1/internal/rule-events", {
+          assert(http.post(#{JSON.generate(callback_url)}, {
             headers = {
               ["Content-Type"] = "application/json",
               ["X-Inbucket-Event-Token"] = event_token,
